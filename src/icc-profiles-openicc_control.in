@@ -1,0 +1,11 @@
+Source:  color-data
+Package: color-data
+Priority: optional
+Section: graphics
+Installed-Size: 7000000
+Maintainer: Kai-Uwe Behrmann <ku.b@gmx.de>
+Homepage: http://www.freedesktop.org/wiki/OpenIcc
+Depends:
+Description: Color Management Data
+ Features
+ ICC profiles from several vendors

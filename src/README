@@ -1,0 +1,28 @@
+About:
+
+    The Colour Management Data (CMD) is provided to serve colour managed
+    applications and services.
+
+
+Internet:
+    site: http://www.freedesktop.org/wiki/OpenIcc
+
+
+Installation:
+    Download and install the icc-profiles-basiccolor-printing2009-1.2.0.tar.gz package.
+    Continue below.
+
+
+Building:
+    $ configure
+    $ make
+    $ make install
+
+  rpm
+    $ make rpm
+
+  debian
+    $ make deb
+
+Packaging:
+    Require basICColor_Offset_2009-1.0.0.tar.bz2 package

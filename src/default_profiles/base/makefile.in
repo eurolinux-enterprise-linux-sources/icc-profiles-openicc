@@ -1,0 +1,143 @@
+LNK  = ln -s
+RPMARCH = `rpmbuild --showrc | awk '/^build arch/ {print $$4}'`
+RPMDIR = ../../rpmdir
+TARGET  = oyranos-profiles-base
+VERSION = 0.5
+
+prefix      = $(INSTDIR)
+SRCDIR		= $(src_dir)
+
+ICC = \
+
+ICC_Argyll = \
+
+ICC_basICColor = \
+	LStar-RGB.icc \
+
+ICC_ECI = \
+
+ICC_lcms = \
+	LCMSLABI.ICM \
+	LCMSXYZI.ICM \
+
+ICC_OpenICC = \
+	compatibleWithAdobeRGB1998.icc \
+	ProPhoto-RGB.icc \
+	sRGB.icc \
+
+ICC_Oyranos = \
+	Gray_linear.icc \
+	Gray-CIE_L.icc \
+	ITULab.icc \
+
+ICC_Oyranos_unused = \
+
+ICC_PhotoGamut = \
+#	PhotoGamutRGB_avg6c.icc \
+
+TARGET_fogra = \
+
+TARGET_NPES = \
+
+FILES = \
+	$(ICC_Argyll) \
+	$(ICC_basICColor) \
+	$(ICC_ECI) \
+	$(ICC_lcms) \
+	$(ICC_OpenICC) \
+	$(ICC_Oyranos) \
+	$(ICC_Oyranos_unused) \
+	$(ICC_PhotoGamut) \
+	$(TARGET_fogra) \
+	$(TARGET_NPES) \
+
+DOKU = \
+	COPYING \
+	LICENSE \
+	LICENSE-ZLIB \
+	LICENSE-ZLIB-LSTAR \
+	licence.rtf \
+	README
+
+
+ALL_FILES = \
+	$(FILES) \
+	Makefile \
+	makefile.in \
+	$(DOKU)
+
+all:
+	echo done
+
+install:
+	echo Installing base profiles in $(DESTDIR)$(syscolordir)/$(iccdirname) ...
+	-make uninstall
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)
+	#mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/ICC
+	#mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/Argyll
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/basICColor
+	#mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/ECI
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/OpenICC
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/Oyranos
+	mkdir -p $(DESTDIR)$(syscolordir)/$(iccdirname)/PhotoGamut
+	cd $(SRCDIR) && \
+	  $(INSTALL) -m 644 $(ICC_basICColor) $(DESTDIR)$(syscolordir)/$(iccdirname)/basICColor; \
+	  $(INSTALL) -m 644 $(ICC_lcms) $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms; \
+	  $(INSTALL) -m 644 $(ICC_OpenICC) $(DESTDIR)$(syscolordir)/$(iccdirname)/OpenICC; \
+	  $(INSTALL) -m 644 $(ICC_Oyranos) $(DESTDIR)$(syscolordir)/$(iccdirname)/Oyranos; \
+	  #$(INSTALL) -m 644 $(ICC_PhotoGamut) $(DESTDIR)$(syscolordir)/$(iccdirname)/PhotoGamut;
+	-$(LNK) LCMSLABI.ICM $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms/Lab.icc
+	-$(LNK) LCMSXYZI.ICM $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms/XYZ.icc
+	echo ... base profile installation finished
+
+uninstall:
+	echo Uninstalling base profiles ...
+	for i in $(ICC); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/ICC/$${i}; \
+	done
+	for i in $(ICC_ARGYLL); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/Argyll/$${i}; \
+	done
+	for i in $(ICC_basICColor); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/basICColor/$${i}; \
+	done
+	for i in $(ICC_ECI); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/ECI/$${i}; \
+	done
+	for i in $(ICC_lcms); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms/$${i}; \
+	done
+	for i in $(ICC_OpenICC); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/OpenICC/$${i}; \
+	done
+	for i in $(ICC_Oyranos); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/Oyranos/$${i}; \
+	done
+	for i in $(ICC_PhotoGamut); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/PhotoGamut/$${i}; \
+	done
+	$(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms/XYZ.icc
+	$(RM)   $(DESTDIR)$(syscolordir)/$(iccdirname)/lcms/Lab.icc
+	echo ... finished uninstalling base profiles
+
+clean:
+	echo done
+
+targz:
+	mkdir $(TARGET)-$(VERSION)
+	$(COPY) \
+	$(ALL_FILES) \
+	$(TARGET)-$(VERSION)
+	tar cf - $(TARGET)-$(VERSION)/ \
+	| gzip > $(TARGET)-$(VERSION).tar.gz
+	test -d $(TARGET)-$(VERSION) && \
+	test `pwd` != `(cd $(TARGET)-$(VERSION); pwd)` && \
+	rm -R $(TARGET)-$(VERSION) 
+
+copy_files:
+	cd $(SRCDIR) && \
+	  test -d $(DESTDIR) && $(COPY) \
+	  $(ALL_FILES) \
+	  $(DESTDIR) || echo "no directory found to copy to:\"$(DESTDIR)\""
+

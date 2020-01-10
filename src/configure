@@ -1,0 +1,701 @@
+#!/bin/sh 
+
+TARGET=icc-profiles-openicc
+TARGET_NAME="Color Management Data"
+
+ERROR=0
+WARNING=0
+
+ROOT_DIR="$0"
+ROOT_DIR=`echo $ROOT_DIR | sed 's%/configure%%1'`
+ROOT_DIR=`(cd $ROOT_DIR; pwd)`
+BUILD_DIR="`pwd`"
+
+CONF=makefile
+CONF_TEMP_SH=config.tmp.sh
+CONF_LOG=config.log
+SPEC=$TARGET.spec
+DEB="$TARGET"_control
+zeile="$0 $@"
+if [ -f $ROOT_DIR/default_profiles/printing/makefile.in ]; then
+  PRINT_CONF=default_profiles/printing/makefile
+  BASE_CONF=default_profiles/base/makefile
+  PROFILE_DIR="default_profiles/printing default_profiles/base"
+else
+  PRINT_CONF=error.txt
+  BASE_CONF=error.txt
+fi
+MAKEFILE_DIR=". $PROFILE_DIR"; export MAKEFILE_DIR
+
+if [ `uname` = "Linux" ]; then
+  v=-v
+fi
+
+if [ "$ROOT_DIR" != "." ]; then
+  mkdir -p default_profiles/base
+  mkdir -p default_profiles/printing
+fi
+
+export ROOT_DIR
+export CONF CONF_LOG CONF_TEMP_SH
+
+test -f error.tmp && rm error.tmp
+test -f $CONF_TEMP_SH && rm $CONF_TEMP_SH
+
+VERSION_A=1
+VERSION_B=3
+VERSION_C=1
+VERSION_ABI_A=1
+VERSION_ABI_B=0
+RELEASE=0
+OPENICC_START_MONTH=11
+OPENICC_START_YEAR=2004
+OPENICC_DEVEL_MONTH=03
+OPENICC_DEVEL_MONTH=3 # numeric
+OPENICC_DEVEL_YEAR=2012
+time="`date +%y%m%d.%H%M%S`"
+DATE="$OPENICC_START_MONTH $OPENICC_START_YEAR - $OPENICC_DEVEL_MONTH $OPENICC_DEVEL_YEAR"
+VERSION=$VERSION_A.$VERSION_B.$VERSION_C
+if [ $VERSION_A -gt 9 ]; then
+  VERSION_L="$VERSION_A"
+else
+  VERSION_L="0$VERSION_A"
+fi
+if [ $VERSION_B -gt 9 ]; then
+  VERSION_L="$VERSION_L$VERSION_B"
+else
+  VERSION_L="${VERSION_L}0$VERSION_B"
+fi
+if [ $VERSION_C -gt 9 ]; then
+  VERSION_L="$VERSION_L$VERSION_C"
+else
+  VERSION_L="${VERSION_L}0$VERSION_C"
+fi
+VERSION_L=`echo $VERSION_L | sed 's/^0*//g'`
+
+INFOECHO="echo"
+
+
+rpm=0
+verbose=1
+
+
+STRIPOPT="sed s/-O.//"
+
+if [ $# -gt 0 ]; then
+  prefix=""
+  while [ $# -gt 0 ]; do
+    arg=$1
+    # prefix exec_prefix bindir sbindir libdir includedir datadir mandir
+    switch=prefix
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      prefix="`echo \"$1\" | sed s/\"--$switch=\"//`"
+    fi
+    switch="exec-prefix"
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      exec_prefix="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=bindir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      bindir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=sbindir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      sbindir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=libdir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      libdir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=cmmsubpath
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      cmmsubpath="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=includedir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      includedir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=datadir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      datadir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=mandir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      mandir="`echo $1 | sed s/--$switch=//`"
+    fi
+    # syscolordir usercolordir iccdirname settingsdirname targetdirname pixmapdir icondir desktopdir
+    switch=syscolordir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      syscolordir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=usercolordir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      usercolordir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=iccdirname
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      iccdirname="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=settingsdirname
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      settingsdirname="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=targetdirname
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      targetdirname="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=pixmapdir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      pixmapdir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=icondir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      icondir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=desktopdir
+    if [ "`echo \"$1\" | sed s/\"--$switch=\"//`" != "$1" ]; then
+      desktopdir="`echo $1 | sed s/--$switch=//`"
+    fi
+    switch=with-rpath
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+      rpath=1
+    fi
+    switch=rpm-only
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+      rpm="1"
+    fi
+    switch=quick
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+      quick="1"
+    fi
+    switch=enable-verbose
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+      verbose="1"
+    fi
+    switch=disable-verbose
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+      verbose="0"
+    fi
+    switch=help
+    if [ "`echo \"$1\" | sed s/\"--$switch\"//`" != "$1" ]; then
+test -n "$INFOECHO" && $INFOECHO "Usage:"
+test -n "$INFOECHO" && $INFOECHO "   --prefix=[/usr/local]                package prefix"
+test -n "$INFOECHO" && $INFOECHO "   --exec-prefix=[\$prefix]              package exec-prefix"
+test -n "$INFOECHO" && $INFOECHO "   --bindir=[\$exec-prefix/bin]          binary installation path"
+test -n "$INFOECHO" && $INFOECHO "   --sbindir=[\$exec-prefix/sbin]        super user binary installation path"
+test -n "$INFOECHO" && $INFOECHO "   --libdir=[\$exec-prefix/lib]          main library installation path"
+test -n "$INFOECHO" && $INFOECHO "   --cmmsubpath=[color/cmms]            module installation path"
+test -n "$INFOECHO" && $INFOECHO "   --includedir=[\$prefix/include]       include file installation"
+test -n "$INFOECHO" && $INFOECHO "   --datadir=[\$prefix/data]             application data base path"
+test -n "$INFOECHO" && $INFOECHO "   --mandir=[\$datadir/man]              manual installation path"
+test -n "$INFOECHO" && $INFOECHO "   --syscolordir=[\$datadir/color]       Oyranos system color path"
+test -n "$INFOECHO" && $INFOECHO "   --usercolordir=[~/.color]            Oyranos user color path"
+test -n "$INFOECHO" && $INFOECHO "   --iccdirname=[icc]                   Oyranos ICC profile directory"
+test -n "$INFOECHO" && $INFOECHO "   --settingsdirname=[settings]         Oyranos settings directory"
+test -n "$INFOECHO" && $INFOECHO "   --targetdirname=[target]             Oyranos target directory"
+test -n "$INFOECHO" && $INFOECHO "   --pixmapdir=[\$datadir/pixmaps]       icon installation path"
+test -n "$INFOECHO" && $INFOECHO "   --icondir=[\$datadir/icons]           mime icon installation path"
+test -n "$INFOECHO" && $INFOECHO "   --desktopdir=[\$datadir/applications] xdg installation path"
+test -n "$INFOECHO" && $INFOECHO "   --rpm-only                           generate only rpm spec file"
+test -n "$INFOECHO" && $INFOECHO "   --enable-verbose                     verbose compiling [default enable]"
+test -n "$INFOECHO" && $INFOECHO "   --disable-verbose                    verbose compiling [default enable]"
+
+test -n "$INFOECHO" && $INFOECHO "   --quick                              generate config files only"
+test -n "$INFOECHO" && $INFOECHO "   --help"
+test -n "$INFOECHO" && $INFOECHO ""
+test -n "$INFOECHO" && $INFOECHO ""
+      exit
+    fi
+    shift
+  done
+fi
+
+# BSD sh shells do not support the -e option to echo
+if [ "-e" = "`echo -e `" ]; then
+  e=""
+else
+  e=""
+fi
+
+# config.log will not work as expected if called as pure BSD shell
+test -z "$zeile" && zeile="exit 1" || echo ""
+
+# no RPM spec file generation
+if [ 0 -eq $rpm ]; then
+  ECHO="echo"
+  RPMECHO="echo"
+  test -f $CONF_LOG && rm $CONF_LOG
+  $ECHO $e "$zeile \$@" > $CONF_LOG
+  $ECHO $e "exit 0" >> $CONF_LOG
+  $ECHO $e "" >> $CONF_LOG
+  $ECHO $e "" >> $CONF_LOG
+  chmod 0755 $CONF_LOG
+  # avoid a warning
+  $ECHO "" >  $CONF_LOG.h
+else
+  ECHO=""
+  RPMECHO="echo"
+fi
+export ECHO
+
+if [ -n "$ECHO" ]; then
+  echo_="";
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="################################################################"
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="#                                                              #"
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="  Welcome to $TARGET_NAME Version $VERSION configurator"
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="#                       $time                          #"
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="#                       Configuration                          #"
+  $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+fi
+
+test -n "$ECHO" && $ECHO "" > $CONF
+test -n "$ECHO" && $ECHO "" > $PRINT_CONF
+test -n "$ECHO" && $ECHO "" > $BASE_CONF
+test -n "$RPMECHO" && $RPMECHO "# generated $SPEC automatically by configure from $ROOT_DIR/$SPEC.in" > $SPEC
+test -n "$RPMECHO" && $RPMECHO "" >> $SPEC
+
+
+#prefix
+if [ -z "$prefix" ]; then
+  prefix=/usr/local
+fi
+
+# define some common variables in front of config.site
+
+# import config.site
+if [ -z "$datadir" ]; then
+  if [ -f $prefix/share/config.site ]; then
+    . $prefix/share/config.site
+    test -n "$ECHO" && (. $prefix/share/config.site >> $CONF_LOG )
+  fi
+else
+  if [ -f $datadir/config.site ]; then
+    . $datadir/config.site
+    test -n "$ECHO" && (. $datadir/config.site >> $CONF_LOG )
+  fi
+fi
+
+
+
+test -n "$ECHO" && $ECHO "# automatically generated by configure from $ROOT_DIR/$CONF.in - it will be overwritten" >> $CONF
+
+test -n "$ECHO" && $ECHO "" >> $CONF
+test -n "$ECHO" && $ECHO "TARGET = $TARGET" >> $CONF
+
+if [ -n "$ECHO" ]; then
+  echo_="#                                                              #"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+fi
+
+
+# detect System
+
+UNAME_=`uname`
+OSUNAME=BSD
+if [ $? = 0 ] && [ $UNAME_ = "Darwin" ]; then
+  arch=`uname -p`
+  version=`uname -r`
+  echo_="Darwin $arch $version   detected";
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  APPLE="1"
+  test -n "$ECHO" && $ECHO "APPLE = 1" >> $CONF
+  OSUNAME=Darwin
+else
+  if [ $UNAME_ = "Linux" ]; then
+    test -n "$ECHO" && $ECHO "LINUX = 1" >> $CONF
+    echo_="Linux system            detected"
+    test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+    SYS=0
+    if [ -f /etc/SuSE-release ]; then
+      if [ `cat /etc/SuSE-release | grep Linux | wc -l` -ne 0 ]; then
+        echo_="`cat /etc/SuSE-release | grep Linux`"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+        SYS=1; fi
+      if [ $SYS -eq 0 ]; then
+        echo_="`cat /etc/SuSE-release | grep SUSE`"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+        SYS=1; fi fi
+    if [ -f /etc/redhat-release ]; then
+      echo_="`cat /etc/redhat-release`"
+      test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+      SYS=1; fi
+    if [ -f /etc/debian_version ]; then
+      if [ -f /etc/issue.net ]; then
+        echo_="`cat /etc/issue.net || cat /etc/debian_version`"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+        SYS=2; fi; fi
+    if [ $SYS -eq 0 ]; then
+      if [ -f /etc/issue.net ]; then
+        echo_="`cat /etc/issue.net`"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+    fi; fi
+    OSUNAME=Linux
+  else
+    if [ $UNAME_ = "SunOS" ]; then
+      test -n "$ECHO" && $ECHO "SOLARIS = 1" >> $CONF
+      echo_="SunOS                   detected"
+      test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+      OSUNAME=SunOS
+    else
+      if [ $UNAME_ = "OpenBSD" ] || [ $UNAME_ = "NetBSD" ] || [ $UNAME_ = "FreeBSD" ]; then
+        test -n "$ECHO" && $ECHO "BSD = 1" >> $CONF
+        OS_EXT=.bsd
+        echo_="BSD $UNAME_             detected"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+        OSUNAME=BSD
+      else
+        echo_="Oyranos may or may not compile on your $UNAME_ system"
+        test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+      fi
+    fi
+  fi
+fi
+OS_EXT=""
+
+
+MACH_=`uname -m`
+deb_arch=$MACH_
+if [ $? = 0 ]; then
+  if [ "$MACH_" = "x86_64" ]; then
+    echo_="X86_64                  detected"
+    deb_arch=amd64
+    test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  else
+    if [ "$MACH_" = "sun4u" ]; then
+      echo_="spark ultra 4           detected"
+      test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+    else
+      echo_="$MACH_ system             detected"
+      test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+      if [ "$MACH_" = "i686" ]; then
+        deb_arch=i386
+      fi
+    fi
+  fi
+fi
+LIBDIR="lib"$BARCH
+export OSUNAME 
+echo_="deb_arch=$deb_arch"
+test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_";
+
+
+# exec_prefix bindir sbindir libdir cmmsubpath includedir datadir
+if [ -z "$exec_prefix" ]; then
+  exec_prefix="$prefix"
+fi
+if [ -z "$bindir" ]; then
+  bindir="$exec_prefix/bin"
+fi
+if [ -z "$sbindir" ]; then
+  sbindir="$exec_prefix/sbin"
+fi
+if [ -z "$libdir" ]; then
+  libdir="$exec_prefix/$LIBDIR"
+fi
+if [ -z "$cmmsubpath" ]; then
+  cmmsubpath="colour/modules"
+fi
+cmmdir="$libdir/$cmmsubpath"
+if [ -z "$includedir" ]; then
+  includedir="$prefix/include"
+fi
+if [ -z "$datadir" ]; then
+  datadir="$prefix/share"
+fi
+if [ -z "$mandir" ]; then
+  mandir="$datadir/man"
+fi
+# syscolordir usercolordir iccdirname settingsdirname targetdirname pixmapdir icondir desktopdir
+if [ -z "$syscolordir" ]; then
+  syscolordir="$datadir/color"
+fi
+if [ -z "$usercolordir" ]; then
+  usercolordir="~/.color"
+fi
+if [ -z "$iccdirname" ]; then
+  iccdirname="icc"
+fi
+if [ -z "$settingsdirname" ]; then
+  settingsdirname="settings"
+fi
+if [ -z "$targetdirname" ]; then
+  targetdirname="target"
+fi
+if [ -z "$pixmapdir" ]; then
+  pixmapdir="$datadir/pixmaps"
+fi
+if [ -z "$icondir" ]; then
+  icondir="$datadir/icons"
+fi
+if [ -z "$desktopdir" ]; then
+  desktopdir="$datadir/applications"
+fi
+export prefix exec_prefix bindir sbindir libdir includedir datadir mandir
+export syscolordir usercolordir pixmapdir icondir desktopdir
+export verbose
+
+PATH=$bindir:$PATH
+export PATH
+
+
+# detect Libraries
+
+test -n "$ECHO" && $ECHO "LIB=/"$LIBDIR >> $CONF
+
+
+# set some compiler and linker options
+
+if [ $OSUNAME = "Darwin" ]; then
+  dyld_libdir="$libdir/"
+  dyld_cmmdir="$cmmdir/"
+  dyld_metadir="$metadir/"
+  COPY="cp -pv"
+  LINK="ln -s"
+  MOVE="mv -v"
+  RM="rm -vf"
+  INSTALL="install -p $DEBUG_SWITCH"
+else
+  if [ $OSUNAME = "Linux" ]; then
+    COPY="cp -vdpa"
+    LINK="ln -sv"
+    MOVE="mv -v"
+    RM="rm -vf"
+    INSTALL="install -p $DEBUG_SWITCH"
+  else
+    COPY="cp -p"
+    LINK="ln -s"
+    MOVE="mv"
+    RM="rm -f"
+    if [ $OSUNAME = "BSD" ]; then
+      INSTALL="install -p $DEBUG_SWITCH"
+    fi
+    if [ $OSUNAME = "SunOS" ]; then
+      INSTALL="install"
+    else
+      INSTALL="install -p"
+    fi
+    test -n "$ECHO" && $ECHO "I18N_LIB = \$(iconv) \$(intl) \$(LIBNAMEV)" >> $CONF
+    test -n "$ECHO" && $ECHO "I18N_LIBSTAT = \$(iconv) \$(intl) \$(LIBNAMEV)" >> $CONF
+    CXXFLAGS="$CXXFLAGS -fPIC"
+  fi
+fi
+ 
+if [ -n "$DSO_LIB_VERSION" ]; then
+  test -n "$ECHO" && $ECHO "DSO_LIB_VERSION = $DSO_LIB_VERSION" >> $CONF
+  export DSO_LIB_VERSION SO
+fi
+test -n "$ECHO" && $ECHO "LINK_FLAGS_DYNAMIC = $LINK_FLAGS_DYNAMIC \$(DSO_LIB_VERSION)" >> $CONF
+test -n "$ECHO" && $ECHO "SO = $SO" >> $CONF
+test -n "$ECHO" && $ECHO "LIBEXT = $LIBEXT" >> $CONF
+export LINK_FLAGS_DYNAMIC SO LIBEXT
+
+for i in $MAKEFILE_DIR; do
+  mkdir -p $i
+  test -n "$ECHO" && $ECHO "src_dir = $ROOT_DIR/$i" | sed 's%/\.%%' >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "COPY = $COPY" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "LINK = $LINK" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "MOVE = $MOVE" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "RM = $RM" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "$osuname" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "EXEC_END = $EXEC_END" >> "$i/makefile"
+  test -n "$ECHO" && $ECHO "MAKEFILE_ARCH = Makefile$OS_EXT" >> "$i/makefile"
+done
+
+
+export CXXFLAGS
+
+test -n "$INFOECHO" && $INFOECHO ""
+
+
+# tell about required libs
+for i in $nochecklibs; do
+  new_libs=`echo $new_libs | sed s/$i//`
+done
+export X_ADD
+
+
+# Alle ifdefs landen hier
+
+test -n "$ECHO" && $ECHO "" >> $CONF
+test -n "$ECHO" && $ECHO "VERSION_A = $VERSION_A" >> $CONF
+test -n "$ECHO" && $ECHO "VERSION_B = $VERSION_B" >> $CONF
+test -n "$ECHO" && $ECHO "VERSION_C = $VERSION_C" >> $CONF
+test -n "$ECHO" && $ECHO "VERSION   = $VERSION" >> $CONF
+test -n "$ECHO" && $ECHO "VERSION_L = $VERSION_L" >> $CONF
+test -n "$ECHO" && $ECHO "RELEASE = $RELEASE" >> $CONF
+test -n "$ECHO" && $ECHO "" >> $CONF
+
+test -n "$INFOECHO" && $INFOECHO ""
+
+
+
+test -n "$RPMECHO" && $RPMECHO "Version:         $VERSION" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "Source:          $TARGET"-"$VERSION".tar.bz2 >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "Release:         $RELEASE" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define syscolordir     $syscolordir" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define usercolordir    $usercolordir" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define iccdirname      $iccdirname" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define cmmsubpath      $cmmsubpath" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define settingsdirname $settingsdirname" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define targetdirname   $targetdirname" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define pixmapdir       $pixmapdir" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define icondir         $icondir" >> $SPEC
+test -n "$RPMECHO" && $RPMECHO "%define desktopdir      $desktopdir" >> $SPEC
+test -n "$RPMECHO" && cat  $ROOT_DIR/"$SPEC.in" >> $SPEC
+echo_="generated $SPEC from $ROOT_DIR/$SPEC.in"
+test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+
+test -n "$RPMECHO" && $RPMECHO "Version:         $VERSION-$RELEASE" > $DEB
+test -n "$RPMECHO" && $RPMECHO "Architecture:    $deb_arch" >> $DEB
+test -n "$RPMECHO" && cat  $ROOT_DIR/"$DEB.in" >> $DEB
+echo_="generated $DEB from $ROOT_DIR/$DEB.in"
+test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+
+
+if [ -n "$ECHO" ]; then
+  echo_=""
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="#                       Paths                                  #"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="#                                                              #"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="prefix          =       $prefix"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="exec_prefix     =       $exec_prefix"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="bindir          =       $bindir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="sbindir         =       $sbindir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="libdir          =       $libdir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="cmmdir          =       $cmmdir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="cmmsubpath      =       $cmmsubpath"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="includedir      =       $includedir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="datadir         =       $datadir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="mandir          =       $mandir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="syscolordir     =       $syscolordir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="usercolordir    =       $usercolordir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="iccdirname      =       $iccdirname"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="settingsdirname =       $settingsdirname"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="targetdirname =         $targetdirname"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="pixmapdir       =       $pixmapdir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="icondir         =       $icondir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="desktopdir      =       $desktopdir"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="################################################################"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_=""
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+fi
+
+test -n "$ECHO" && $ECHO "build_dir = $BUILD_DIR" >> $CONF
+test -n "$ECHO" && $ECHO "prefix=$prefix" >> $CONF
+test -n "$ECHO" && $ECHO "exec_prefix=$exec_prefix" >> $CONF
+test -n "$ECHO" && $ECHO "bindir=$bindir" >> $CONF
+test -n "$ECHO" && $ECHO "sbindir=$sbindir" >> $CONF
+test -n "$ECHO" && $ECHO "libdir=$libdir" >> $CONF
+test -n "$ECHO" && $ECHO "cmmdir=$cmmdir" >> $CONF
+test -n "$ECHO" && $ECHO "metadir=$metadir" >> $CONF
+test -n "$ECHO" && $ECHO "cmmsubpath=$cmmsubpath" >> $CONF
+test -n "$ECHO" && $ECHO "includedir=$includedir" >> $CONF
+test -n "$ECHO" && $ECHO "dyld_libdir=$dyld_libdir" >> $CONF
+test -n "$ECHO" && $ECHO "dyld_cmmdir=$dyld_cmmdir" >> $CONF
+test -n "$ECHO" && $ECHO "dyld_metadir=$dyld_metadir" >> $CONF
+test -n "$ECHO" && $ECHO "datadir=$datadir" >> $CONF
+test -n "$ECHO" && $ECHO "mandir=$mandir" >> $CONF
+test -n "$ECHO" && $ECHO "syscolordir=$syscolordir" >> $CONF
+test -n "$ECHO" && $ECHO "usercolordir=$usercolordir" >> $CONF
+test -n "$ECHO" && $ECHO "iccdirname=$iccdirname" >> $CONF
+test -n "$ECHO" && $ECHO "settingsdirname=$settingsdirname" >> $CONF
+test -n "$ECHO" && $ECHO "targetdirname=$targetdirname" >> $CONF
+test -n "$ECHO" && $ECHO "pixmapdir=$pixmapdir" >> $CONF
+test -n "$ECHO" && $ECHO "icondir=$icondir" >> $CONF
+test -n "$ECHO" && $ECHO "desktopdir=$desktopdir" >> $CONF
+test -n "$ECHO" && $ECHO "" >> $CONF
+
+test -n "$ECHO" && $ECHO "syscolordir = $syscolordir" >> $PRINT_CONF
+test -n "$ECHO" && $ECHO "iccdirname = $iccdirname" >> $PRINT_CONF
+test -n "$ECHO" && $ECHO "targetdirname = $targetdirname" >> $PRINT_CONF
+test -n "$ECHO" && $ECHO "syscolordir = $syscolordir" >> $BASE_CONF
+test -n "$ECHO" && $ECHO "iccdirname = $iccdirname" >> $BASE_CONF
+test -n "$ECHO" && $ECHO "targetdirname = $targetdirname" >> $BASE_CONF
+
+
+
+test -n "$ECHO" && $ECHO "INSTALL = $INSTALL" >> $CONF
+test -n "$ECHO" && $ECHO "INSTALL = $INSTALL" >> $PRINT_CONF
+test -n "$ECHO" && $ECHO "INSTALL = $INSTALL" >> $BASE_CONF
+
+
+test -n "$ECHO" && $ECHO "" >> $CONF
+test -n "$ECHO" && $ECHO "" >> $CONF
+
+test -n "$INFOECHO" && $INFOECHO ""
+test -n "$INFOECHO" && $INFOECHO ""
+
+# prepare makefile from MAKEFILE_DIR
+if [ -n "$ECHO" ]; then
+  PREPARE_MAKEFILES=1; export PREPARE_MAKEFILES
+  $ROOT_DIR/configure_tests.sh
+  PREPARE_MAKEFILES=0; export PREPARE_MAKEFILES
+fi
+
+
+test -f error.tmp && ERROR=1
+test -f error.tmp && rm error.tmp
+if [ $ERROR != 0 ] && [ -z "$quick" ]; then
+  echo_="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!                     An ERROR occured                     !!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!                     See Log above                        !!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!                     remove  $CONF                     !!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  test -n "$INFOECHO" && $INFOECHO ""
+  exit
+elif [ $WARNING != 0 ]; then
+  echo_="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!                     Warning                              !!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!                     See Log above                        !!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+  echo_="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG; test -n "$INFOECHO" && $INFOECHO "$echo_"
+fi
+
+echo_="char * oy_config_log_=\" \\"
+test -n "$ECHO" && $ECHO "$echo_" >  $CONF_LOG.h
+test -n "$ECHO" && cat $CONF_LOG | sed 's/\"/\\\"/g ; s/$/\ \\n\\/g'  >> $CONF_LOG.h
+echo_="\";"
+test -n "$ECHO" && $ECHO $e "$echo_" >> $CONF_LOG.h
+
+
+if [ -f error.txt ] && [ `cat error.txt | wc -l` -lt 1 ]; then
+  rm error.txt
+fi
+
+exit 0

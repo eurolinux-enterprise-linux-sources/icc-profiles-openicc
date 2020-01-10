@@ -1,0 +1,96 @@
+
+RPMARCH = noarch
+RPMDIR = ../../rpmdir
+TARGET  = oyranos-printing-default
+VERSION = 0.5
+
+prefix      = $(INSTDIR)
+SRCDIR		= $(src_dir)/
+
+PROFILES = \
+	$(ICC_Argyll) \
+	$(ICC_basICColor) \
+	$(ICC_ECI) \
+	$(ICC_lcms) \
+	$(ICC_OpenICC) \
+	$(ICC_Oyranos) \
+	$(ICC_PhotoGamut) \
+	$(TARGET_fogra) \
+	$(TARGET_NPES) \
+
+
+TARGETS = \
+        $(TARGET_fogra) \
+        $(TARGET_NPES) \
+
+TARGET_fogra = \
+	FOGRA28L.ti3 \
+	FOGRA29L.ti3 \
+	FOGRA30L.ti3 \
+	FOGRA39L.ti3 \
+	FOGRA40L.ti3 \
+
+TARGET_NPES = \
+	TR002.ti3 \
+	TR003.ti3 \
+	TR005.ti3 \
+	TR006.ti3
+
+DOKU = \
+	README \
+	LICENSE-ZLIB
+
+
+ALL_FILES = \
+	$(PROFILES) \
+	$(TARGETS) \
+	Makefile \
+	makefile.in \
+	$(DOKU)
+
+#.SILENT:
+
+all:	$(SPROFILES)
+	echo done
+
+
+install:
+	echo Installing printing targets in $(DESTDIR)$(syscolordir)/$(iccdirname) ...
+	mkdir -p $(DESTDIR)$(syscolordir)/$(targetdirname)/fogra
+	mkdir -p $(DESTDIR)$(syscolordir)/$(targetdirname)/NPES
+	cd $(SRCDIR) && \
+	  $(INSTALL) -m 644 $(TARGET_fogra) $(DESTDIR)$(syscolordir)/$(targetdirname)/fogra; \
+	  $(INSTALL) -m 644 $(TARGET_NPES) $(DESTDIR)$(syscolordir)/$(targetdirname)/NPES; \
+	echo ... printing targets Installation finished
+
+uninstall:
+	echo Uninstalling printing targets ...
+	for i in $(TARGET_fogra); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(targetdirname)/fogra/$${i}; \
+	done
+	for i in $(TARGET_NPES); do \
+	  $(RM)   $(DESTDIR)$(syscolordir)/$(targetdirname)/NPES/$${i}; \
+	done
+	echo ... done uninstall printing targets
+
+clean:
+	echo done
+
+targz:
+	test -d $(TARGET)-$(VERSION) && $(RM) -R $(TARGET)-$(VERSION) || echo -e "\c"
+	mkdir $(TARGET)-$(VERSION)
+	$(COPY) \
+	$(ALL_FILES) \
+	$(TARGET)-$(VERSION)
+	tar cf - $(TARGET)-$(VERSION)/ \
+	| gzip > $(TARGET)-$(VERSION).tar.gz
+	test -d $(TARGET)-$(VERSION) && \
+	test `pwd` != `(cd $(TARGET)-$(VERSION); pwd)` && \
+	rm -R $(TARGET)-$(VERSION) 
+
+copy_files:
+	cd $(SRCDIR) && \
+	  test -d $(DESTDIR) && $(COPY) \
+	  $(ALL_FILES) \
+	  $(DESTDIR) || echo "no directory found to copy to:\"$(DESTDIR)\""
+

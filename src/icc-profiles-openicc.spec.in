@@ -1,0 +1,269 @@
+Summary:   Color Management Data
+Name:      icc
+License:   zlib
+Group:     Productivity/Graphics/Other
+URL:       http://www.freedesktop.org/wiki/OpenIcc
+Vendor:    http://www.freedesktop.org/wiki/OpenIcc
+BuildArch: noarch
+BuildRoot: %{_tmppath}/%{name}-%{version}-build
+Prefix:    %{_prefix}
+
+%description
+The color data is provided to be used by color managed applications and
+systems.
+
+
+
+%prep
+%setup -n  icc-profiles-openicc-%{version}
+
+%build
+%configure --quick
+
+%install
+make DESTDIR=%{buildroot} install
+rm -fr %{buildroot}/%{_datadir}/color/icc/Cine*
+
+%clean
+
+%post
+%postun
+
+%package      mime-types
+Summary:    ICC + CGATS icon
+Group:     Productivity/Graphics/Other
+Version:    1.2
+%description  mime-types
+The ICC profile and CGATS mime types and a icon for these file types.
+
+
+%package      profiles-openicc-rgb
+Summary:    Default sRGB ICC profile +
+Group:     Productivity/Graphics/Other
+Version:    1.3
+Requires:   icc-dirs
+%description  profiles-openicc-rgb
+The "WWW standard" sRGB colorimetry in a ICC profile and others.
+
+%package      profiles-oyranos-extra
+Summary:    Gray and ITUlab profiles
+Group:     Productivity/Graphics/Other
+Vendor:     http://www.oyranos.org
+URL:        http://www.oyranos.org
+Version:    1.2
+Requires:   icc-dirs
+Provides:       shared-color-profiles-extra = %{version}-%{release}
+Obsoletes:      shared-color-profiles-extra < %{version}-%{release}
+%description  profiles-oyranos-extra
+A gray and ITUlab fax ICC profile.
+
+%package      profiles-lcms-lab
+Summary:    Default PCS profiles
+Group:     Productivity/Graphics/Other
+Vendor:     http://www.littlecms.com
+URL:        http://www.littlecms.com
+Version:    1.2
+Requires:   icc-dirs
+%description  profiles-lcms-lab
+Special LCMS profiles for PCS color spaces.
+
+%package      profiles-basiccolor-lstarrgb
+Summary:    Default Editing RGB profile
+Group:     Productivity/Graphics/Other
+Vendor:     http://www.colormanagement.org
+URL:        http://www.colormanagement.org
+Version:    1.2
+Requires:   icc-dirs
+%description  profiles-basiccolor-lstarrgb
+The RGB profile maintaining perceptual equal lightness.
+The LStar-RGB.icc profile is colorimetric identical to the eciRGB_v2 profile.
+
+
+%package      targets-fogra
+Summary:    FOGRA Printing Characterisation Data
+Group:     Productivity/Graphics/Other
+URL:        http://www.fogra.org
+Vendor:     http://www.fogra.org
+Version:    1.0
+Requires:   icc-dirs
+%description  targets-fogra
+Printing characterisation data according to ISO 12647-2.
+These are CMYK characterisation data for coated,
+webcoated, uncoated, uncoatedyellowish and SC paper.
+
+%package      targets-npes
+Summary:    NPES Printing Characterisation Data
+Group:     Productivity/Graphics/Other
+URL:        http://www.npes.org
+Vendor:     http://www.npes.org
+Version:    1.0
+Requires:   icc-dirs
+%description  targets-npes
+Printing characterisation data. These are CMYK
+characterisation data for GRACoL, SWOP and SNAP.
+
+%package      profiles-all
+Summary:    OpenICC Data with all ICC profiles and targets
+Group:     Productivity/Graphics/Other
+Version:    1.2
+Requires:   icc-profiles-basiccolor-printing2009-extra
+Requires:   icc-profiles-openicc-rgb
+Requires:   icc-profiles-lcms-lab 
+Requires:   icc-profiles-oyranos-extra
+Requires:   icc-profiles-basiccolor-lstarrgb
+%description  profiles-all
+The meta package installs all ICC profiles from the OpenICC Data collection.
+
+%package      profiles-mini
+Summary:    OpenICC Data with minimal ICC profiles
+Group:     Productivity/Graphics/Other
+Version:    1.2
+Requires:   icc-profiles-openicc-rgb
+Requires:   icc-profiles-lcms-lab
+Requires:   icc-profiles-basiccolor-lstarrgb
+%description  profiles-mini
+The meta package installs a minimal set of ICC profiles from the OpenICC 
+Data collection. No Cmyk and Gray profiles are contained.
+
+%package      profiles
+Summary:    OpenICC Data with complete ICC profiles
+Group:     Productivity/Graphics/Other
+Version:    1.2
+Requires:   icc-profiles-openicc-rgb
+Requires:   icc-profiles-lcms-lab
+Requires:   icc-profiles-basiccolor-lstarrgb
+Requires:   icc-profiles-basiccolor-printing2009-coat2
+Requires:   icc-profiles-oyranos-extra
+Provides:       openicc-data = %{version}-%{release}
+Obsoletes:      openicc-data < %{version}-%{release}
+Provides:       shared-color-profiles = %{version}-%{release}
+Obsoletes:      shared-color-profiles < %{version}-%{release}
+%description  profiles
+The meta package installs a complete set of ICC profiles from the OpenICC 
+Data collection. One Cmyk profile is contained.
+
+
+%files mime-types
+%defattr(-, root, root)
+%{_datadir}/mime/packages/*
+%{pixmapdir}/*
+%{icondir}/*
+# This should go in the package docs, not with the profiles.
+%doc default_profiles/base/LICENSE-ZLIB
+
+
+%files profiles-lcms-lab
+%defattr(-, root, root)
+%{syscolordir}/icc/lcms/LCMS*.ICM
+%{syscolordir}/icc/lcms/Lab.icc
+%{syscolordir}/icc/lcms/XYZ.icc
+%doc default_profiles/base/LICENSE-ZLIB
+
+%files profiles-oyranos-extra
+%defattr(-, root, root)
+%{syscolordir}/icc/Oyranos/ITULab.icc
+%{syscolordir}/icc/Oyranos/Gray_linear.icc
+%{syscolordir}/icc/Oyranos/Gray-CIE_L.icc
+%doc default_profiles/base/LICENSE-ZLIB
+
+%files profiles-basiccolor-lstarrgb
+%defattr(-, root, root)
+%{syscolordir}/icc/basICColor/LStar-RGB.icc
+# This should go in the package docs, not with the profiles.
+%doc default_profiles/base/LICENSE-ZLIB-LSTAR
+
+%files profiles-openicc-rgb
+%defattr(-, root, root)
+%{syscolordir}/icc/OpenICC/sRGB.icc
+%{syscolordir}/icc/OpenICC/ProPhoto-RGB.icc
+%{syscolordir}/icc/OpenICC/compatibleWithAdobeRGB1998.icc
+%doc default_profiles/base/LICENSE-ZLIB
+
+%files targets-fogra
+%defattr(-, root, root)
+%{syscolordir}/target/fogra/FOGRA28L.ti3
+%{syscolordir}/target/fogra/FOGRA29L.ti3
+%{syscolordir}/target/fogra/FOGRA30L.ti3
+%{syscolordir}/target/fogra/FOGRA39L.ti3
+%{syscolordir}/target/fogra/FOGRA40L.ti3
+%doc default_profiles/printing/LICENSE-ZLIB
+
+%files targets-npes
+%defattr(-, root, root)
+%{syscolordir}/target/NPES/TR002.ti3
+%{syscolordir}/target/NPES/TR003.ti3
+%{syscolordir}/target/NPES/TR005.ti3
+%{syscolordir}/target/NPES/TR006.ti3
+%doc default_profiles/printing/LICENSE-ZLIB
+
+%files profiles-all
+%defattr(-, root, root)
+%doc default_profiles/base/LICENSE-ZLIB
+
+%files profiles-mini
+%defattr(-, root, root)
+%doc default_profiles/base/LICENSE-ZLIB
+
+%files profiles
+%defattr(-, root, root)
+%doc default_profiles/base/LICENSE-ZLIB
+
+
+%changelog
+* Sun Jul 10 2011 Kai-Uwe Behrmann <ku.b at gmx.de> - 1.3.0
+- rename basic package to icc-profiles-openicc
+- use bzip2 package for RPM
+
+* Sat Apr 09 2011 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- omit PhotoGamutRGB until license is clear
+- add icc-profiles RPM to contain icc-profiles-mini + one Cmyk and Gray profile
+- set ICC profile ID
+
+* Thu Jan 17 2011 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- remove printing profiles
+- add dependency to icc-profiles-basiccolor-printing2009
+
+* Mon Dec 27 2010 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- split out a directory package from the mime types
+
+* Fri Aug 28 2010 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- new package naming scheme for Oyranos independent installations
+
+* Sat Jul 24 2010 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- switch from eciRGB_v2 to LStar-RGB.icc because of new licensing
+
+* Sun May 16 2010 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- bump version for PCS profiles because of their change (size fix, git 404f5755)
+
+* Wed Oct 22 2008 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- update to new profiles
+- add characterisation data
+- remove ECI print profiles
+
+* Thu Feb 26 2008 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- v0.5
+- change some licenses to public domain
+- new eciRGBv2 profiles
+- remove LStar-RGB
+
+* Sun Jul 9 2006 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- add compatibleWithAdobeRGB1998.icc from Graeme Gill
+- move oyranos-sRGB to oyranos-RGB for inclusion of above profile
+
+* Wed Jul 5 2006 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- add Lab.icc and XYZ.icc symlinks => v0.4
+
+* Sat Jun 4 2005 - Kai-Uwe Behrmann <ku.b at gmx.de>
+- sorting URLs and Licenses
+
+* Fri Jun 3 2005  - P. Linnell <mrodcs at scribus.info>
+- spec files tweaks
+- split the package into sub-packages to avoid future name space clashes
+
+* Sat May 28 2005 - Kai-Uwe Behrmann
+- packaging
+
+* Tue Apr 21 2005 Kai-Uwe Behrmann
+- first release
+
+
