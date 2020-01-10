@@ -1,6 +1,6 @@
 Name:           icc-profiles-openicc
 Version:        1.3.1
-Release:        5%{?dist}
+Release:        4%{?dist}
 Summary:        The OpenICC profiles
 
 Group:          User Interface/X
@@ -106,9 +106,6 @@ fi
 
 
 %changelog
-* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1.3.1-5
-- Mass rebuild 2013-12-27
-
 * Thu Jul 25 2013 Michal Srb <msrb@redhat.com> - 1.3.1-4
 - Fix license tag
 
